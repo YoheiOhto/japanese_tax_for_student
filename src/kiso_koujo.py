@@ -52,3 +52,40 @@ def kiso_kojo_chiho_tamaki(income):
         return 15
     else:
         return 0
+
+# 自民党案 (所得税)
+def kiso_kojo_kuni_jimin(income):
+    if income <= 200:
+        return 95
+    elif income <= 475:
+        return 88
+    elif income <= 665:
+        return 68
+    elif income <= 850:
+        return 63
+    elif income <= 2400:
+        return 58
+    elif income <= 2450:
+        return 32
+    elif income <= 2500:
+        return 16
+    else:
+        return 0
+
+def kiso_kojo_kuni_2025(income):
+    if income <= 132:
+        return 95
+    elif income <= 336:
+        return 88
+    elif income <= 489:
+        return 68
+    elif income <= 665:
+        return 63
+    elif income <= 2350:
+        return 58
+    elif income <= 2450:
+        return 32
+    elif income <= 2500:
+        return 16
+    else:
+        return 0

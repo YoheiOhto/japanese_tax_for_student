@@ -41,5 +41,17 @@ def kyuyo_syotoku_kojo_calc_miyazawa(income):
     else:
         # 給与収入が8,500,001円以上の場合 1,950,000円（上限）
         kojo = 195
-    
+    return kojo
+
+def kyuyo_syotoku_kojo_calc_2025(income):
+    if income <= 190:
+        kojo = 65
+    elif income <= 360:
+        kojo = income * 0.30 + 8
+    elif income <= 660:
+        kojo = income * 0.20 + 44
+    elif income <= 850:
+        kojo = income * 0.10 + 110
+    else:
+        kojo = 195
     return kojo
