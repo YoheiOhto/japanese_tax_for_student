@@ -3,15 +3,6 @@
 # 定額減税は関数の外部で計算する。
 
 def calculate_income_tax(taxable_income):
-    """
-    所得税額を計算する関数。
-    
-    Args:
-        taxable_income (float): 課税所得金額（万円単位）
-    
-    Returns:
-        float: 所得税額（万円単位）
-    """
     if taxable_income <= 194.9:
         tax_rate = 0.05
         deduction = 0
@@ -34,6 +25,5 @@ def calculate_income_tax(taxable_income):
         tax_rate = 0.45
         deduction = 479.6
 
-    # 所得税額の計算
     tax = taxable_income * tax_rate - deduction
-    return tax
+    return max(0, tax)  # 課税所得0の場合も安全
