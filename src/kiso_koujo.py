@@ -1,91 +1,54 @@
-# 住民税の基礎控除
-def kiso_kojo_kuni(income):
-    if income <= 2400:
-        return 48
-    elif income <= 2450:
-        return 32
-    elif income <= 2500:
-        return 16
-    else:
-        return 0
+def kiso_kojo_kuni(income, year):
+    """
+    所得税の基礎控除（年別）
+    year: 2024, 2025, 2026
+    """
 
-# 玉木が石破に勝った場合 (所得税)
-def kiso_kojo_kuni_tamaki(income):
-    if income <= 2400:
-        return 123
-    elif income <= 2450:
-        return 32
-    elif income <= 2500:
-        return 16
-    else:
-        return 0
+    # --- 2024年（現行） ---
+    if year == 2024:
+        if income <= 2400:
+            return 48
+        elif income <= 2450:
+            return 32
+        elif income <= 2500:
+            return 16
+        else:
+            return 0
 
-# 宮沢が最強だった場合 (所得税)
-def kiso_kojo_kuni_miyazawa(income):
-    if income <= 2400:
-        return 58
-    elif income <= 2450:
-        return 32
-    elif income <= 2500:
-        return 16
+    # --- 2025年（自民・宮沢折衷案） ---
+    elif year == 2025:
+        if income <= 2400:
+            return 58
+        elif income <= 2450:
+            return 32
+        elif income <= 2500:
+            return 16
+        else:
+            return 0
+
+    # --- 2026年（玉木案フル適用仮定） ---
+    elif year == 2026:
+        if income <= 2400:
+            return 123
+        elif income <= 2450:
+            return 32
+        elif income <= 2500:
+            return 16
+        else:
+            return 0
+
     else:
-        return 0
-    
-# 住民税の基礎控除（住民税） (宮沢案も同じ) 
+        raise ValueError("year must be 2024, 2025, or 2026")
+
 def kiso_kojo_chiho(income):
+    """
+    住民税の基礎控除（2024–2026 共通）
+    """
     if income <= 2400:
         return 43
     elif income <= 2450:
         return 29
     elif income <= 2500:
         return 15
-    else:
-        return 0
-
-# 玉木が石破に勝った場合 (所得税)
-def kiso_kojo_chiho_tamaki(income):
-    if income <= 2400:
-        return 118
-    elif income <= 2450:
-        return 29
-    elif income <= 2500:
-        return 15
-    else:
-        return 0
-
-# 自民党案 (所得税)
-def kiso_kojo_kuni_jimin(income):
-    if income <= 200:
-        return 95
-    elif income <= 475:
-        return 88
-    elif income <= 665:
-        return 68
-    elif income <= 850:
-        return 63
-    elif income <= 2400:
-        return 58
-    elif income <= 2450:
-        return 32
-    elif income <= 2500:
-        return 16
-    else:
-        return 0
-
-def kiso_kojo_kuni_2025(income):
-    if income <= 132:
-        return 95
-    elif income <= 336:
-        return 88
-    elif income <= 489:
-        return 68
-    elif income <= 665:
-        return 63
-    elif income <= 2350:
-        return 58
-    elif income <= 2450:
-        return 32
-    elif income <= 2500:
-        return 16
     else:
         return 0

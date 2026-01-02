@@ -1,38 +1,50 @@
 # 国保 https://www.city.bunkyo.lg.jp/b021/p000424.html
 # 年齢的に介護保険を支払う必要がないと想定
 
-def kokumin_kenko_hoken(all_salary, kyuyo_syotoku_kojo, kiso_kojo):
+def kokumin_kenko_hoken_bunkyo(
+    total_income,
+    num_persons=1,
+    no_kaigo=True
+):
     """
-    国民健康保険料を計算（文京区・令和6年度想定）。
+    国民健康保険料（文京区・令和6年度想定）
     
     Parameters:
-        all_salary (float): 給与収入（万円単位）
-        kyuyo_syotoku_kojo (float): 給与所得控除（万円単位）
-        kiso_kojo (float): 住民税基礎控除（万円単位）
+        total_income (float): 総所得金額等（万円）
+        num_persons (int): 被保険者数（世帯人数）
+        no_kaigo (bool): 40歳未満で介護保険料なしと仮定
     
     Returns:
-        dict: 総保険料、月額、基礎分、支援金分（すべて万円単位）
+        dict: 年額・月額・内訳（万円）
     """
-    # 算定基礎額（所得割対象）
-    sante_kiso = max(0, all_salary - kyuyo_syotoku_kojo - kiso_kojo)
-    
-    # 基礎分保険料
-    syotoku_wari_kiso = sante_kiso * 0.0869
-    kinto_wari_kiso = 4.91  # 均等割
-    kiso_hoken = syotoku_wari_kiso + kinto_wari_kiso
-    
-    # 支援金分保険料
-    syotoku_wari_sien = sante_kiso * 0.028
-    kinto_wari_sien = 1.65
-    sien_hoken = syotoku_wari_sien + kinto_wari_sien
-    
-    # 合計・月額
+
+    # --- 所得割の算定基礎 ---
+    sante_kiso = max(0, total_income - 43)
+
+    # --- 料率（文京区 令和6年度） ---
+    RATE_KISO = 0.0869
+    RATE_SIEN = 0.0280
+
+    KINTO_KISO = 4.91
+    KINTO_SIEN = 1.65
+
+    # --- 所得割 ---
+    syotoku_kiso = sante_kiso * RATE_KISO
+    syotoku_sien = sante_kiso * RATE_SIEN
+
+    # --- 均等割 ---
+    kinto_kiso = KINTO_KISO * num_persons
+    kinto_sien = KINTO_SIEN * num_persons
+
+    # --- 合計 ---
+    kiso_hoken = syotoku_kiso + kinto_kiso
+    sien_hoken = syotoku_sien + kinto_sien
     total = kiso_hoken + sien_hoken
-    monthly = total / 12
-    
+
     return {
-        "総保険料": total,
-        "月額": monthly,
+        "算定基礎所得": sante_kiso,
+        "総保険料（年額）": total,
+        "月額": total / 12,
         "基礎分": kiso_hoken,
         "支援金分": sien_hoken
     }

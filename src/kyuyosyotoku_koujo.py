@@ -1,57 +1,29 @@
-# 現行の給与所得控除　(国民民主党案も同じ)
-def kyuyo_syotoku_kojo_calc(income):
-    if income <= 162.5:
-        # 給与収入が1,625,000円以下の場合 550,000円
-        kojo = 55
-    elif income <= 180:
-        # 給与収入が1,625,001円から1,800,000円までの場合 収入金額×40％-100,000円
-        kojo = income * 0.40 - 10
-    elif income <= 360:
-        # 給与収入が1,800,001円から3,600,000円までの場合 収入金額×30％+80,000円
-        kojo = income * 0.30 + 8
-    elif income <= 660:
-        # 給与収入が3,600,001円から6,600,000円までの場合 収入金額×20％+440,000円
-        kojo = income * 0.20 + 44
-    elif income <= 850:
-        # 給与収入が6,600,001円から8,500,000円までの場合 収入金額×10％+1,100,000円
-        kojo = income * 0.10 + 110
-    else:
-        # 給与収入が8,500,001円以上の場合 1,950,000円（上限）
-        kojo = 195
-    
-    return kojo
+def kyuyo_syotoku_kojo(income, year):
+    """
+    給与所得控除（年別・万円単位）
+    year: 2024, 2025, 2026
+    """
 
-# 宮沢の給与所得控除
-def kyuyo_syotoku_kojo_calc_miyazawa(income):
-    if income <= 162.5:
-        # 給与収入が1,625,000円以下の場合 550,000円
-        kojo = 65
-    elif income <= 180:
-        # 給与収入が1,625,001円から1,800,000円までの場合 収入金額×40％-100,000円
-        kojo = income * 0.40 - 10
-    elif income <= 360:
-        # 給与収入が1,800,001円から3,600,000円までの場合 収入金額×30％+80,000円
-        kojo = income * 0.30 + 8
-    elif income <= 660:
-        # 給与収入が3,600,001円から6,600,000円までの場合 収入金額×20％+440,000円
-        kojo = income * 0.20 + 44
-    elif income <= 850:
-        # 給与収入が6,600,001円から8,500,000円までの場合 収入金額×10％+1,100,000円
-        kojo = income * 0.10 + 110
+    # --- 最低保障額 ---
+    if year == 2024 or year == 2026:
+        min_kojo = 55
+        min_threshold = 162.5
+    elif year == 2025:
+        min_kojo = 65
+        min_threshold = 162.5
     else:
-        # 給与収入が8,500,001円以上の場合 1,950,000円（上限）
-        kojo = 195
-    return kojo
+        raise ValueError("year must be 2024, 2025, or 2026")
 
-def kyuyo_syotoku_kojo_calc_2025(income):
-    if income <= 190:
-        kojo = 65
+    # --- 控除計算 ---
+    if income <= min_threshold:
+        return min_kojo
+    elif income <= 180:
+        return income * 0.40 - 10
     elif income <= 360:
-        kojo = income * 0.30 + 8
+        return income * 0.30 + 8
     elif income <= 660:
-        kojo = income * 0.20 + 44
+        return income * 0.20 + 44
     elif income <= 850:
-        kojo = income * 0.10 + 110
+        return income * 0.10 + 110
     else:
-        kojo = 195
-    return kojo
+        return 195
