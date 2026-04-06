@@ -2,3 +2,7 @@
 *_zeikin.ipynb
 
 src/__pycache__
+
+results/*
+output/*
+*ohto*

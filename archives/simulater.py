@@ -1,5 +1,5 @@
 from .syotoku_zei import calculate_income_tax
-from .jumin_zei import tyosei_koujo
+from ..src.jumin_zei import tyosei_koujo
 
 def simulate_core(
     all_salaries,
