@@ -1,0 +1,13 @@
+[project]
+name = "japanese-tax-for-student"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "streamlit>=1.35.0",
+    "plotly>=5.20.0",
+    "pandas>=2.0.0",
+    "numpy>=1.26.0",
+]
+
+[dependency-groups]
+dev = []
