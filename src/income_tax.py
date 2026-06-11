@@ -1,3 +1,6 @@
+from .config import FUKKOU_RATE, INCOME_TAX_BRACKETS
+
+
 def calculate_income_tax(taxable_income: float, include_fukkou: bool = False) -> float:
     """
     所得税額を計算する（万円単位）
@@ -30,21 +33,11 @@ def calculate_income_tax(taxable_income: float, include_fukkou: bool = False) ->
     https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/2260.htm
     """
 
-    brackets = [
-        (195,          0.05,   0.00),
-        (330,          0.10,   9.75),
-        (695,          0.20,  42.75),
-        (900,          0.23,  63.60),
-        (1800,         0.33, 153.60),
-        (4000,         0.40, 279.60),
-        (float("inf"), 0.45, 479.60),
-    ]
-
     tax_rate = deduction = 0.0
-    for threshold, rate, ded in brackets:
+    for threshold, rate, ded in INCOME_TAX_BRACKETS:
         if taxable_income <= threshold:
             tax_rate, deduction = rate, ded
             break
 
     base_tax = max(0.0, taxable_income * tax_rate - deduction)
-    return round(base_tax * 1.021 if include_fukkou else base_tax, 6)
+    return round(base_tax * (1 + FUKKOU_RATE) if include_fukkou else base_tax, 6)

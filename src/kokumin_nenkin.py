@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from .config import resolve_year_with_fallback
+
 _NENKIN_RATES: dict = {
     2025: {
         "2年前納": {
@@ -101,10 +105,7 @@ def kokumin_nenkin_payment(
     {'実支払額（万円）': 1.792, '割引額（万円）': 0.0, ...}
     """
  
-    if fiscal_year not in _NENKIN_RATES:
-        raise ValueError(
-            f"fiscal_year は {sorted(_NENKIN_RATES.keys())} のいずれかを指定してください。"
-        )
+    fiscal_year, is_estimated = resolve_year_with_fallback(_NENKIN_RATES, fiscal_year)
  
     freq_table = _NENKIN_RATES[fiscal_year]
  
@@ -129,6 +130,7 @@ def kokumin_nenkin_payment(
  
     return {
         "適用年度":         _NENKIN_LABEL[fiscal_year],
+        "概算フラグ":       is_estimated,
         "支払い頻度":       frequency,
         "支払い方法":       payment_method,
         "実支払額（万円）":  round(amount_m,   4),

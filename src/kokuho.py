@@ -1,83 +1,94 @@
-# 国保 https://www.city.bunkyo.lg.jp/b021/p000424.html
-# 年齢的に介護保険を支払う必要がないと想定
+from __future__ import annotations
 
-_BUNKYO_RATES = {
-    2025: (0.0869, 0.0280, 4.91,  1.65),  # 令和7年度
-    2026: (0.0751, 0.0280, 4.76,  1.76),  # 令和8年度（子ども支援金分が新設）
-}
+from .config import (
+    DEFAULT_MUNICIPALITY,
+    KOKUHO_RATES,
+    KOKUHO_SANTEI_KOJO,
+    resolve_year_with_fallback,
+)
 
-def kokumin_kenko_hoken_bunkyo(
+
+def kokumin_kenko_hoken(
     total_income: float,
+    year: int,
     num_persons: int = 1,
-    fiscal_year: int = 2025,
-    no_kaigo: bool = True,
+    num_kaigo_persons: int = 0,
+    municipality: str = DEFAULT_MUNICIPALITY,
 ) -> dict:
     """
-    国民健康保険料（文京区）
- 
+    国民健康保険料（年額）を計算する。
+
     Parameters
     ----------
     total_income : float
-        総所得金額等（万円）
+        総所得金額等（万円）。世帯の合計所得を渡す。
+    year : int
+        課税対象年。`config.KOKUHO_RATES` に該当年度のデータが無い場合は
+        最新の既知年度のレートで代用し、戻り値の `概算フラグ` を True にする。
     num_persons : int
-        被保険者数（世帯人数）
-    fiscal_year : int
-        年度。2025（令和7年度）または 2026（令和8年度）。
-        ※ 2026年度から子ども支援金分（18歳以上・所得割0.27%・均等割3,000円）が新設。
-    no_kaigo : bool
-        True = 介護分なし（40歳未満 or 65歳以上と仮定）。
-        介護分（40〜64歳）を含む場合は別途加算が必要。
- 
+        国民健康保険の被保険者数（世帯人数）。
+    num_kaigo_persons : int
+        被保険者のうち介護保険第2号被保険者（40〜64歳）の人数。
+        0 の場合は介護分を計算しない。
+    municipality : str
+        自治体名。`config.KOKUHO_RATES` に対応するキーが必要。
+
     Returns
     -------
     dict
-        年額・月額・内訳（万円）
- 
-    令和8年度（2026年度）の変更点
-    -------------------------------
-    - 基礎分所得割: 8.69% → 7.51%
-    - 基礎分均等割: 49,100円 → 47,600円
-    - 支援金分均等割: 16,500円 → 17,600円
-    - 子ども支援金分（新設）: 所得割0.27%、均等割3,000円（18歳以上対象）
-    - 介護分（40〜64歳）: 所得割2.43%、均等割17,800円
- 
-    出典: 文京区「保険料の計算方法」（2026年4月1日更新）
-    https://www.city.bunkyo.lg.jp/b021/p000424.html
+        年額・月額・内訳（万円）と、レートが代用値かどうかの概算フラグ。
+
+    Notes
+    -----
+    - 所得割の算定基礎は「総所得金額等 - 住民税基礎控除相当額(43万円)」で計算する
+      （実際の住民税基礎控除額が43万円でない高所得者層では簡略化となる）。
+    - 介護分の所得割算定基礎も同じ `total_income` を用いる簡略化をしている
+      （世帯内の介護対象者のみの所得で按分はしていない）。
+    - 各区分（基礎分・支援金分・介護分）は「所得割＋均等割」の合計を
+      区分ごとの賦課限度額でカットする。
     """
- 
-    if fiscal_year not in _BUNKYO_RATES:
+    if municipality not in KOKUHO_RATES:
         raise ValueError(
-            f"fiscal_year は {sorted(_BUNKYO_RATES.keys())} のいずれかを指定してください。"
+            f"未対応の自治体です: {municipality}. "
+            f"対応自治体: {list(KOKUHO_RATES)}"
         )
- 
-    rate_kiso, rate_sien, kinto_kiso, kinto_sien = _BUNKYO_RATES[fiscal_year]
- 
-    # 所得割の算定基礎（住民税基礎控除43万円を控除）
-    sante_kiso = max(0.0, total_income - 43)
- 
-    # 所得割
-    syotoku_kiso = sante_kiso * rate_kiso
-    syotoku_sien = sante_kiso * rate_sien
- 
-    # 均等割
-    kintos_kiso = kinto_kiso * num_persons
-    kintos_sien = kinto_sien * num_persons
- 
-    kiso_hoken = syotoku_kiso + kintos_kiso
-    sien_hoken = syotoku_sien + kintos_sien
-    total = kiso_hoken + sien_hoken
- 
-    labels = {
-        2025: "令和7年度（2025年4月〜2026年3月）",
-        2026: "令和8年度（2026年4月〜2027年3月）※子ども支援金分・介護分は別途",
-    }
- 
+    if num_kaigo_persons < 0 or num_kaigo_persons > num_persons:
+        raise ValueError("num_kaigo_persons は 0 以上 num_persons 以下で指定してください。")
+
+    table = KOKUHO_RATES[municipality]
+    resolved_year, is_estimated = resolve_year_with_fallback(table, year)
+    rates = table[resolved_year]
+
+    sante_kiso = max(0.0, total_income - KOKUHO_SANTEI_KOJO)
+
+    kiso_hoken = min(
+        sante_kiso * rates.kiso_rate + rates.kiso_kinto * num_persons,
+        rates.kiso_gendo,
+    )
+    sien_hoken = min(
+        sante_kiso * rates.sien_rate + rates.sien_kinto * num_persons,
+        rates.sien_gendo,
+    )
+
+    if num_kaigo_persons > 0 and rates.kaigo_rate is not None:
+        kaigo_hoken = min(
+            sante_kiso * rates.kaigo_rate + rates.kaigo_kinto * num_kaigo_persons,
+            rates.kaigo_gendo,
+        )
+    else:
+        kaigo_hoken = 0.0
+
+    total = kiso_hoken + sien_hoken + kaigo_hoken
+
     return {
-        "適用年度":         labels[fiscal_year],
-        "算定基礎所得":     sante_kiso,
-        "総保険料（年額）":  total,
-        "月額":             total / 12,
-        "基礎分":           kiso_hoken,
-        "支援金分":         sien_hoken,
+        "適用年度": resolved_year,
+        "自治体": municipality,
+        "概算フラグ": is_estimated,
+        "出典": rates.source,
+        "算定基礎所得": sante_kiso,
+        "総保険料（年額）": total,
+        "月額": total / 12,
+        "基礎分": kiso_hoken,
+        "支援金分": sien_hoken,
+        "介護分": kaigo_hoken,
     }
- 
