@@ -159,7 +159,7 @@ effective_rate = summary["実効負担率(%)"]
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
 
-tab1, tab2, tab3 = st.tabs(["📊 シミュレーション結果", "📈 収入別シミュレーション", "📅 年度比較"])
+tab1, tab2, tab3, tab4 = st.tabs(["📊 シミュレーション結果", "📈 収入別シミュレーション", "📈 経費別シミュレーション", "📅 年度比較"])
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -413,10 +413,124 @@ with tab2:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Tab 3: 年度比較
+# Tab 3: 経費別シミュレーション
 # ─────────────────────────────────────────────────────────────────────────────
 
 with tab3:
+    st.subheader("経費の増加に対する手取り・税金等の変化")
+    st.caption("雑所得（副業・フリーランス・奨学金等）の必要経費のみを変化させます。それ以外の設定はサイドバーの値で固定します。")
+
+    if base_input.zassyotoku_revenue == 0.0:
+        st.warning("現在、サイドバーで入力されている「雑所得の収入」が0万円です。経費による影響をシミュレーションするには、サイドバーの「雑所得」の「収入（万円）」に値を入力してください。")
+    else:
+        max_expenses = st.slider(
+            "シミュレーション最大経費（万円）",
+            min_value=1.0,
+            max_value=max(10.0, float(base_input.zassyotoku_revenue * 1.5)),
+            value=float(base_input.zassyotoku_revenue),
+            step=1.0,
+            help="必要経費をどこまで増やしてシミュレーションするかを設定します。"
+        )
+
+        @st.cache_data
+        def compute_expense_range(max_exp: float, base: SimulationInput):
+            step = 0.5 if max_exp <= 50.0 else (1.0 if max_exp <= 200.0 else 5.0)
+            exp_range = np.arange(0, max_exp + step, step, dtype=float)
+            take_homes, taxes, shakais, total_incomes = [], [], [], []
+            
+            for exp in exp_range:
+                inp = SimulationInput(**{**base.__dict__, "zassyotoku_expenses": exp})
+                r = simulate_tax(inp)
+                sm = r["サマリー"]
+                take_homes.append(sm["手取り収入"])
+                taxes.append(r["所得税額"] + r["住民税額（所得割）"])
+                shakais.append(r["社会保険料控除"])
+                total_incomes.append(r["合計所得金額"])
+            return exp_range, take_homes, taxes, shakais, total_incomes
+
+        exp_range, take_homes, taxes, shakais, total_incomes = compute_expense_range(max_expenses, base_input)
+
+        fig_exp = go.Figure()
+        
+        # 総収入
+        fig_exp.add_trace(go.Scatter(
+            x=exp_range, y=[gross] * len(exp_range),
+            name="総収入（参考）",
+            line=dict(color="#90A4AE", width=1, dash="dash"),
+        ))
+        
+        fig_exp.add_trace(go.Scatter(
+            x=exp_range, y=take_homes,
+            name="手取り収入",
+            line=dict(color="#66BB6A", width=2.5),
+        ))
+        
+        fig_exp.add_trace(go.Scatter(
+            x=exp_range, y=taxes,
+            name="税金合計（所得税＋住民税）",
+            line=dict(color="#AB47BC", width=1.5),
+        ))
+        
+        fig_exp.add_trace(go.Scatter(
+            x=exp_range, y=shakais,
+            name="社会保険料合計（国保＋年金）",
+            line=dict(color="#EF5350", width=1.5),
+        ))
+        
+        fig_exp.add_trace(go.Scatter(
+            x=exp_range, y=total_incomes,
+            name="合計所得金額",
+            line=dict(color="#29B6F6", width=1.5, dash="dash"),
+        ))
+
+        # 雑所得の収入額のライン
+        if base_input.zassyotoku_revenue <= max_expenses:
+            fig_exp.add_vline(
+                x=base_input.zassyotoku_revenue, line_dash="dash", line_color="#E0E0E0", line_width=1.2,
+                annotation_text="雑所得の収入額", annotation_position="top left",
+                annotation_font_size=11,
+            )
+
+        # 扶養判定の閾値
+        fuyou_gendo = result["扶養判定"]["所得要件（合計所得金額）"]
+        kyuyo_shotoku_total = result["給与所得合計"]
+        target_zasso = fuyou_gendo - kyuyo_shotoku_total
+        
+        if target_zasso >= 0:
+            aoiro_val = 65.0 if base_input.aoiro_tokubetsu_kojo else 0.0
+            border_expense = base_input.zassyotoku_revenue - aoiro_val - target_zasso
+            if border_expense > 0 and border_expense <= max_expenses:
+                fig_exp.add_vline(
+                    x=border_expense, line_dash="dot", line_color="#FF9800", line_width=1.5,
+                    annotation_text=f"扶養適用ライン（経費{border_expense:.1f}万以上）", annotation_position="top right",
+                    annotation_font_size=11,
+                )
+            elif border_expense <= 0:
+                fig_exp.add_annotation(
+                    text="経費0でも扶養要件を満たしています",
+                    xref="paper", yref="paper",
+                    x=0.02, y=0.95, showarrow=False,
+                    font=dict(size=11, color="#4CAF50"),
+                    bgcolor="#E8F5E9",
+                )
+
+        fig_exp.update_layout(
+            xaxis_title="雑所得の必要経費（万円）",
+            yaxis_title="金額（万円）",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, x=0),
+            height=500,
+            margin=dict(t=30, b=20),
+        )
+        st.plotly_chart(fig_exp, use_container_width=True)
+        
+        st.info("💡 雑所得は、収入から経費（および青色申告特別控除）を引いた額がプラスの場合にのみ課税対象となります。そのため、経費を増やすことで合計所得金額が下がり、所得税・住民税・国民健康保険料が減少します。結果として手取りの減少が穏やかになります。また、合計所得金額が扶養の基準以下になると、親などの扶養に入ることができるため、世帯全体での税負担軽減効果が得られます。")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Tab 4: 年度比較
+# ─────────────────────────────────────────────────────────────────────────────
+
+with tab4:
     st.subheader("年度別 納税額・手取り比較")
 
     compare_years = [2024, 2025, 2026, 2027]
